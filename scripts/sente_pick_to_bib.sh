@@ -1,6 +1,6 @@
 #!/bin/bash
 
-osascript <<APPLESCRIPT | 
+osascript <<APPLESCRIPT &&
 tell application "Sente 6"
     set refs to select references current library as bibtex
 end tell
