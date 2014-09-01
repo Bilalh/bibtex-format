@@ -104,6 +104,8 @@ removeUnwantedFields c@Cons{fields=fs,entryType=typ} =
          ,"citeseer-references"
          ,"date-added"
          ,"date-modified"
+         ,"descriptor"
+         ,"file"
          ,"google_scholar_bibtex_export_key"
          ,"keyword"
          ,"keywords"
