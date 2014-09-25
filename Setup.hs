@@ -17,7 +17,7 @@ copyScripts :: PackageDescription -> LocalBuildInfo -> CopyDest -> IO ()
 copyScripts pkg local copy = do
     let dirs = absoluteInstallDirs pkg local copy
     copyFile "scripts/align_equals.rb"           (bindir dirs </> "align_equals.rb")
-    copyFile "scripts/bibtex-fix-aligned.sh"     (bindir dirs </> "bibtex-fix-aligned")
+    copyFile "scripts/bibtex-format-aligned.sh"     (bindir dirs </> "bibtex-format-aligned")
     copyFile "scripts/sente_pick_to_bib.sh"      (bindir dirs </> "sente_pick_to_bib")
     copyFile "scripts/sente_selected_to_bib.sh"  (bindir dirs </> "sente_selected_to_bib")
     copyFile "scripts/sente_cite.sh"             (bindir dirs </> "sente_cite")
