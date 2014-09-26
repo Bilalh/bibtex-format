@@ -79,17 +79,12 @@ main = do
                     |> nub
                     |> unlines
 
-                duplicates = xs
-                    |> map identifier
-                    |> histogram
-                    |> filter (\ (_,n) -> n > 1 )
-
                 stderr = unlines
                     $ "Error: Duplicate bibtex keys."
-                    : map (\ (k,n) -> show n ++ "\t" ++ k ) duplicates
+                    : map (\ (k,n) -> show n ++ "\t" ++ k ) (duplicates xs)
 
             putStrLn stdout
-            unless (null duplicates) (die stderr)
+            unless (null (duplicates xs) ) (die stderr)
 
 
 processCiteKeys :: Args -> T -> T
@@ -182,13 +177,6 @@ removeUnwantedFields Args{..} c@Cons{fields=fs,entryType=ty} =
          ,"web_data_source"
          ]
 
-
-histogram :: Ord a => [a] -> [(a,Int)]
-histogram = map (head &&& length) . group . sort
-
-
-lowerCaseEntryType :: T -> T
-lowerCaseEntryType t = t { entryType = map toLower (entryType t) }
 
 fixStdin :: String -> String
 fixStdin = replace "@inproc.{" "@inproceedings{"

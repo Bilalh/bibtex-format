@@ -1,8 +1,11 @@
 module Helpers where
 
 import Control.Applicative((<$>))
+import Control.Arrow ( (&&&) )
 
 import Data.Aeson (FromJSON(..))
+import Data.Char ( toLower )
+import Data.List (group, sort)
 
 import System.Directory (doesFileExist)
 
@@ -23,6 +26,16 @@ getJSON (Just fp) = do
         return Nothing
 getJSON Nothing = return Nothing
 
+duplicates :: [T] -> [(String,Int)]
+duplicates xs = xs
+    |>  map identifier
+    |> histogram
+    |> filter (\ (_,n) -> n > 1 )
+
+
+lowerCaseEntryType :: T -> T
+lowerCaseEntryType t = t { entryType = map toLower (entryType t) }
+
 
 (|>) :: a -> (a -> b) -> b
 (|>) = flip ($)
@@ -34,6 +47,10 @@ comp x = (  fieldOf "year" x  >>= fmap negate . parseInt, entryType x, fieldOf "
 
 fieldOf :: String -> T -> Maybe String
 fieldOf f = lookup f . fields
+
+
+histogram :: Ord a => [a] -> [(a,Int)]
+histogram = map (head &&& length) . group . sort
 
 
 die :: String -> IO ()
