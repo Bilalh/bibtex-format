@@ -75,11 +75,14 @@ newCiteKeys reps t@Cons{..} |
     ,Just (kind, pubName) <- getKind
     ,Just a               <- getAuthors
 
-    ,Just b  <- lookup pubName fields >>= return .  filter f . useReps
-        = t{identifier=map toLower $ intercalate "/" [kind,b,y,a]}
+    ,Just b  <- lookup pubName fields >>= return . useReps
+        = t{identifier=map toLower . filter f $ intercalate "/" [kind,ts b,y,a]}
 
     where
-        f c =  (isAlphaNum c || c `elem` ":-/_" ) && isAscii c
+        ts s | length s >20 = take 20 s
+        ts s = s
+
+        f c =  (isAlphaNum c || c `elem` ":/_" ) && isAscii c
 
         getKind
             | Just _ <- "journal"   `fieldOf` t  = Just ("j","journal")
@@ -99,7 +102,7 @@ newCiteKeys reps t@Cons{..} |
             where
                 addFstAuthor a s =
                         let fa  = (last . splitSepList ' ' . head  $  a)
-                        in fa ++  '-':s
+                        in fa ++  '_':s
 
                 as []     = []
                 as [_]    = []

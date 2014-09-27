@@ -7,8 +7,7 @@ import Control.Applicative((<$>))
 import Control.Arrow ( (&&&) )
 import Control.Monad ( unless )
 
-import Data.Char ( toLower )
-import Data.List ( nub, sort, sortBy, group )
+import Data.List ( nub, sortBy)
 import Data.Map(Map)
 import Data.Maybe(mapMaybe,fromMaybe)
 import Data.Ord ( comparing )
@@ -174,6 +173,7 @@ removeUnwantedFields Args{..} c@Cons{fields=fs,entryType=ty} =
          ,"tags"
          ,"timestamp"
          ,"uid"
+         ,"uuid"
          ,"web_data_source"
          ]
 
