@@ -17,6 +17,8 @@ import Text.BibTeX.Entry
 import Text.BibTeX.Format ( entry )
 import Text.BibTeX.Parse ( file, splitAuthorList,splitSepList )
 import Text.ParserCombinators.Parsec ( parse )
+import Data.String.Utils ( replace )
+
 
 import qualified Data.Map as M
 
@@ -69,8 +71,45 @@ main = do
             putStrLn stdout
             unless (null $ duplicates xs) (die stderr)
 
+
 newCiteKeys :: Map String String -> T -> T
-newCiteKeys reps t@Cons{..} |
+newCiteKeys _ t@Cons{..} |
+     Just (_:_:y@(_:_))   <- lookup "year" fields
+    ,Just a               <- getAuthors
+    ,Just ti              <- getTitle
+        = t{identifier= filter f $ a ++ ':' : (map toLower $ intercalate ":"  [y, ti ]) }
+
+    where
+
+        f c =  (isAlphaNum c || c `elem` ":/_" ) && isAscii c
+
+        getAuthors
+            | Just authors <- fmap (map toLower) $ lookup "author" fields =
+                let ls = splitAuthorList authors  in
+                    Just (last . splitSepList ' ' . head  $ ls )
+            | otherwise = Nothing
+
+        getTitle
+            | Just parts <- fmap ( words . filter
+                                    (\c ->  c `elem` " _" || isAscii c && isAlphaNum c) .
+                                    replace "-" " "
+                                )
+                                $ lookup "title" fields=
+                Just . intercalate "_" $ takep 25 parts
+
+            | otherwise = Nothing
+
+        takep :: Int -> [String] -> [String]
+        takep _    [] = []
+        takep left _      | left <= 0       = []
+        takep left (x:_)  | left < length x = []
+        takep left (x:xs) = x : takep (left - length x - 1) xs
+
+newCiteKeys _ t = t
+
+
+newCiteKeys1 :: Map String String -> T -> T
+newCiteKeys1 reps t@Cons{..} |
      Just (_:_:y@(_:_))   <- lookup "year" fields
     ,Just (kind, pubName) <- getKind
     ,Just a               <- getAuthors
@@ -108,4 +147,4 @@ newCiteKeys reps t@Cons{..} |
                 as [_]    = []
                 as (_:xs) = xs
 
-newCiteKeys _ t = t
+newCiteKeys1 _ t = t
