@@ -8,18 +8,17 @@
 	<string>#!/bin/bash
 export PATH=~/.cabal/bin:$PATH
 
-reps="/Users/bilalh/CS/_misc/_zsmall/bibtex-format/examples/Expend.json"
 
 if [ -n  "$TM_SELECTED_TEXT" ]; then
 echo "$TM_SELECTED_TEXT" | \
-	bibtex-format -t publisher -t abstract  -t language -t document_type -t source -t coden -t art_number -t note -r "${reps}" | \
+	bibtex-format -t publisher -t abstract  -t language -t document_type -t source -t coden -t art_number -t note | \
 	grep -v 'Lecture Notes in Computer Science' | \
 	bibtex-new-keys | \
 	align_equals.rb
 
 else
 cat "$TM_FILEPATH" | \
-	bibtex-format -t publisher -t abstract  -t language -t document_type -t source -t coden -t art_number -t note -r "${reps}" | \
+	bibtex-format -t publisher -t abstract  -t language -t document_type -t source -t coden -t art_number -t note  | \
 	grep -v 'Lecture Notes in Computer Science' | \
 	bibtex-new-keys | \
 	align_equals.rb

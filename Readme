@@ -1,0 +1,44 @@
+bibtex-format
+------------
+
+Formats a BiBTeX file or a BiBTeX entry and inlines cross-references.
+Gets rid of juck fields that the websites add to the entries
+
+Usage:
+
+From file
+	cat $file | bibtex-format
+
+From clipboard
+	pbpaste | bibtex-format
+
+Use -t <field> to get rid of addition fields
+
+align_equals.rb  align the bibtex nicely
+
+What I use:
+
+bibtex-format -t publisher -t abstract  -t language -t document_type -t source -t coden -t art_number -t note | grep -v 'Lecture Notes in Computer Science' | align_equals.rb
+
+
+bibtex-new-keys
+---------------
+
+Add bibtex-new-keys to filter to create new cite keys e.g
+
+From file
+	cat $file | bibtex-new-keys
+
+From clipboard
+	pbpaste | bibtex-new-keys
+
+
+Scripts
+-------
+
+For using in Texmate
+
+	scripts/BibTex Format.tmCommand
+	scripts/BiBTeX New keys.tmCommand
+
+
