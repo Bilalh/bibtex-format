@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>beforeRunningCommand</key>
+	<string>nop</string>
+	<key>command</key>
+	<string>#!/bin/bash
+export PATH=~/.cabal/bin:$PATH
+
+reps="/Users/bilalh/CS/_misc/_zsmall/bibtex-format/examples/Expend.json"
+
+if [ -n  "$TM_SELECTED_TEXT" ]; then
+echo "$TM_SELECTED_TEXT" | \
+	bibtex-format -t publisher -t abstract  -t language -t document_type -t source -t coden -t art_number -t note -r "${reps}" | \
+	grep -v 'Lecture Notes in Computer Science' | \
+	bibtex-new-keys | \
+	align_equals.rb
+
+else
+cat "$TM_FILEPATH" | \
+	bibtex-format -t publisher -t abstract  -t language -t document_type -t source -t coden -t art_number -t note -r "${reps}" | \
+	grep -v 'Lecture Notes in Computer Science' | \
+	bibtex-new-keys | \
+	align_equals.rb
+
+fi
+</string>
+	<key>input</key>
+	<string>selection</string>
+	<key>inputFormat</key>
+	<string>text</string>
+	<key>keyEquivalent</key>
+	<string>^~@r</string>
+	<key>name</key>
+	<string>BiBTeX New keys</string>
+	<key>outputCaret</key>
+	<string>afterOutput</string>
+	<key>outputFormat</key>
+	<string>text</string>
+	<key>outputLocation</key>
+	<string>replaceInput</string>
+	<key>scope</key>
+	<string>text.bibtex</string>
+	<key>uuid</key>
+	<string>9E893580-41C3-482F-AE04-207D6977E44E</string>
+	<key>version</key>
+	<integer>2</integer>
+</dict>
+</plist>
