@@ -16,7 +16,6 @@ executable bibtex-format
         base
        ,bibtex == 0.1.*
        ,parsec
-       ,MissingH
        ,containers
        ,cmdargs
        ,aeson
@@ -34,7 +33,6 @@ executable bibtex-new-keys
         base
        ,bibtex == 0.1.*
        ,parsec
-       ,MissingH
        ,containers
        ,cmdargs
        ,aeson

@@ -17,11 +17,9 @@ import Text.BibTeX.Entry
 import Text.BibTeX.Format ( entry )
 import Text.BibTeX.Parse ( file, splitAuthorList,splitSepList )
 import Text.ParserCombinators.Parsec ( parse )
-import Data.String.Utils ( replace )
-
+import Strings ( replace )
 
 import qualified Data.Map as M
-
 
 import Helpers
 

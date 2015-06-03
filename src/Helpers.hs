@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase #-}
 module Helpers where
 
 import Control.Applicative((<$>))
@@ -17,13 +18,18 @@ import qualified System.Exit as E ( exitFailure )
 import qualified System.IO as E ( hPutStrLn, stderr )
 
 
+getJSON2 :: FromJSON a => FilePath -> IO a
+getJSON2 = error "d"
+
 getJSON :: FromJSON a => Maybe FilePath -> IO (Maybe a)
 getJSON (Just fp) = do
-    b <- doesFileExist fp
-    if b then
-        A.decode <$> B.readFile fp
-    else
-        return Nothing
+  doesFileExist fp >>= \case
+    False -> error $ "File not found " ++ fp
+    True  -> do
+      A.decode <$> B.readFile fp >>= \case
+        Just v  -> return v
+        Nothing -> error $ "Error decoding " ++ fp
+
 getJSON Nothing = return Nothing
 
 duplicates :: [T] -> [(String,Int)]
