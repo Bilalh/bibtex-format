@@ -1,6 +1,8 @@
 bibtex-format
 ------------
 
+[![Build Status](https://travis-ci.org/Bilalh/bibtex-format.svg?branch=master)](https://travis-ci.org/Bilalh/bibtex-format)
+
 Formats a BibTeX file or a BibTeX entry and inlines cross-references.
 Gets rid of juck fields that the websites add to the entries.
 
