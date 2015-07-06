@@ -77,6 +77,7 @@ main = do
                   |> (\z -> if pdfLinks flags then map doPDFLinks z else z)
                   |> map (removeUnwantedFields flags)
                   |> map (processMonth)
+                  |> map (processDOI)
                   |> map (addExtraFields extra_fields)
                   |> sortBy (comparing comp)
                   |> map entry
@@ -131,6 +132,13 @@ doPubReplacements kind reps t@Cons{fields=fc} |
   fix _ _ tu = tu
 
 doPubReplacements _ _ t = t
+
+processDOI :: T -> T
+processDOI t@Cons{fields=fs} = t{fields=map process fs}
+
+ where
+ process ("doi", val) = ("doi", T.unpack . (T.replace "\\_" "_") . T.pack $ val)
+ process tu           = tu
 
 processMonth :: T -> T
 processMonth t@Cons{fields=fs} = t{fields=map process fs}
