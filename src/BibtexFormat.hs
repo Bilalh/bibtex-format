@@ -224,8 +224,6 @@ removeUnwantedFields Args{..} c@Cons{fields=fs,entryType=ty} =
        ,"file"
        ,"google_scholar_bibtex_export_key"
        ,"ieee_dockey"
-       ,"keyword"
-       ,"keywords"
        ,"medium_consulted"
        ,"microsoftid"
        ,"notes"
