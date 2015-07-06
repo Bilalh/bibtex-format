@@ -30,14 +30,18 @@ data Args = Args
     , toRemove :: [String]
     , repsPath :: Maybe FilePath
     , pdfLinks :: Bool
+    , extra_keys :: [String]
+    , extra_vals :: [String]
     }  deriving (Show, Data, Typeable)
 
 argsDef :: Args
 argsDef  = Args
            { toRemove = [] &= typ "bibfield" &= help "Fields to remove using multiple -t"
            , repsPath = def &= help "Replacements filepath"
-           , keys     = def &= help "Process bibtex citekeys"
+           , keys     = def &= help "Process bibtex citekeys" &= name "n" &= explicit
            , pdfLinks = def &= help "Convert a file:// link to a posix path and places it in a pdf field"
+           , extra_keys = def &= name "k" &= help "Extra *keys* value pairs"  &= explicit
+           , extra_vals = def &= name "v" &= help "Extra keys *value* pairs"  &= explicit
            }
          &= summary (unlines
             [ "bibtex-format:"
@@ -55,6 +59,7 @@ main = do
   repsMaybe :: Maybe (Map String String) <- getJSON  $ (repsPath flags)
   let reps = fromMaybe M.empty repsMaybe
 
+  let extra_fields = zip (extra_keys flags) (extra_vals flags)
 
   stdin <- getContents
   case parse file "<stdin>" (fixStdin stdin) of
@@ -72,6 +77,7 @@ main = do
                   |> (\z -> if pdfLinks flags then map doPDFLinks z else z)
                   |> map (removeUnwantedFields flags)
                   |> map (processMonth)
+                  |> map (addExtraFields extra_fields)
                   |> sortBy (comparing comp)
                   |> map entry
                   |> nub
@@ -172,6 +178,9 @@ processMonth t@Cons{fields=fs} = t{fields=map process fs}
  fix "december"  = "dec"
 
  fix xs = error . show $ "Not a month: "  ++ xs
+
+addExtraFields :: [(String,String)] -> T -> T
+addExtraFields extra t  = t{fields=fields t ++ extra}
 
 removeUnwantedFields :: Args -> T -> T
 removeUnwantedFields Args{..} c@Cons{fields=fs,entryType=ty} =
