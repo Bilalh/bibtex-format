@@ -16,6 +16,7 @@ import qualified Data.Aeson as A
 import qualified Data.ByteString.Lazy as B
 import qualified System.Exit as E ( exitFailure )
 import qualified System.IO as E ( hPutStrLn, stderr )
+import qualified Data.Char as Char
 
 
 getJSON2 :: FromJSON a => FilePath -> IO a
@@ -66,3 +67,15 @@ parseInt :: String -> Maybe Int
 parseInt s  =  case reads s :: [(Int,String)] of
             [(d,"")] -> Just d
             _        -> Nothing
+
+
+urlDecode :: String -> Maybe String
+urlDecode [] = Just []
+urlDecode ('%':xs) =
+  case xs of
+    (a:b:xss) ->
+      urlDecode xss
+      >>= return . ((Char.chr . read $ "0x" ++ [a,b]) :)
+    _ -> Nothing
+urlDecode ('+':xs) = urlDecode xs >>= return . (' ' :)
+urlDecode (x:xs) = urlDecode xs >>= return . (x :)

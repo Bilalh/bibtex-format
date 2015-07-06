@@ -1,14 +1,16 @@
-{-# LANGUAGE DeriveDataTypeable, LambdaCase, RecordWildCards, ScopedTypeVariables #-}
+{-# LANGUAGE DeriveDataTypeable, LambdaCase, OverloadedStrings, RecordWildCards,
+             ScopedTypeVariables, ViewPatterns #-}
 module Main where
 
-import Prelude
 import Helpers
+import Prelude
 import Strings (replace)
 
 import Control.Applicative             ((<$>))
 import Control.Arrow                   ((&&&))
 import Control.Monad                   (unless)
-import Data.List                       (nub, sortBy)
+import Data.Char                       (toLower)
+import Data.List                       (isInfixOf, nub, sortBy, stripPrefix)
 import Data.Map                        (Map)
 import Data.Maybe                      (fromMaybe, mapMaybe)
 import Data.Ord                        (comparing)
@@ -18,14 +20,16 @@ import Text.BibTeX.Format              (entry)
 import Text.BibTeX.Parse               (file)
 import Text.ParserCombinators.Parsec   (parse)
 
-import qualified Data.Map as M
-import qualified Data.Set as S
+import qualified Data.Map  as M
+import qualified Data.Set  as S
+import qualified Data.Text as T
 
 
 data Args = Args
     { keys     :: Bool
     , toRemove :: [String]
     , repsPath :: Maybe FilePath
+    , pdfLinks :: Bool
     }  deriving (Show, Data, Typeable)
 
 argsDef :: Args
@@ -33,6 +37,7 @@ argsDef  = Args
            { toRemove = [] &= typ "bibfield" &= help "Fields to remove using multiple -t"
            , repsPath = def &= help "Replacements filepath"
            , keys     = def &= help "Process bibtex citekeys"
+           , pdfLinks = def &= help "Convert a file:// link to a posix path and places it in a pdf field"
            }
          &= summary (unlines
             [ "bibtex-format:"
@@ -64,8 +69,9 @@ main = do
                   |> map (inlineCrossRef $ M.fromList . map (identifier &&& id) $ entries)
                   |> map (doPubReplacements "booktitle" reps)
                   |> map (doPubReplacements "journal" reps)
+                  |> (\z -> if pdfLinks flags then map doPDFLinks z else z)
                   |> map (removeUnwantedFields flags)
-                  |> map (processCiteKeys flags)
+                  |> map (processMonth)
                   |> sortBy (comparing comp)
                   |> map entry
                   |> nub
@@ -77,6 +83,17 @@ main = do
 
           putStrLn stdout
           unless (null (duplicates xs) ) (die stderr)
+
+
+doPDFLinks :: T -> T
+doPDFLinks t@Cons{fields=fs} = t{fields=map process fs}
+  where
+    process :: (String, String) -> (String, String)
+    process (_, stripPrefix "file://" -> Just rest)
+        | Just decoded <- urlDecode rest
+        , ".pdf" `isInfixOf` decoded =
+        ("pdf", T.unpack . (T.replace ",Sente," "") . T.pack $ decoded)
+    process f = f
 
 
 processCiteKeys :: Args -> T -> T
@@ -109,6 +126,52 @@ doPubReplacements kind reps t@Cons{fields=fc} |
 
 doPubReplacements _ _ t = t
 
+processMonth :: T -> T
+processMonth t@Cons{fields=fs} = t{fields=map process fs}
+
+ where
+ process ("month", val) = ("month", fix $ map toLower val)
+ process tu             = tu
+
+ fix "1"  = "jan"
+ fix "2"  = "feb"
+ fix "3"  = "mar"
+ fix "4"  = "apr"
+ fix "5"  = "may"
+ fix "6"  = "jun"
+ fix "7"  = "jul"
+ fix "8"  = "aug"
+ fix "9"  = "sep"
+ fix "10" = "oct"
+ fix "11" = "nov"
+ fix "12" = "dec"
+
+ fix "jan" = "jan"
+ fix "feb" = "feb"
+ fix "mar" = "mar"
+ fix "apr" = "apr"
+ fix "may" = "may"
+ fix "jun" = "jun"
+ fix "jul" = "jul"
+ fix "aug" = "aug"
+ fix "sep" = "sep"
+ fix "oct" = "oct"
+ fix "nov" = "nov"
+ fix "dec" = "dec"
+
+ fix "january"   = "jan"
+ fix "february"  = "feb"
+ fix "march"     = "mar"
+ fix "april"     = "apr"
+ fix "june"      = "jun"
+ fix "july"      = "jul"
+ fix "august"    = "aug"
+ fix "september" = "sep"
+ fix "october"   = "oct"
+ fix "november"  = "nov"
+ fix "december"  = "dec"
+
+ fix xs = error . show $ "Not a month: "  ++ xs
 
 removeUnwantedFields :: Args -> T -> T
 removeUnwantedFields Args{..} c@Cons{fields=fs,entryType=ty} =

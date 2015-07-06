@@ -21,6 +21,7 @@ executable bibtex-format
        ,aeson
        ,bytestring
        ,directory
+       ,text
     ghc-options:
         -Wall
 
