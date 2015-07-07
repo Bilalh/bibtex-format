@@ -209,7 +209,7 @@ removeUnwantedFields Args{..} c@Cons{fields=fs,entryType=ty} =
   let
       fs' = map unwrap fs
       rmFields "misc" = toRemove ++ rm
-      rmFields _      = toRemove ++ "url" :rm
+      rmFields _      = toRemove ++ rm
 
       onlyWanted =  [ f | f <- fs', snd f /= "", fst f `S.notMember` (  S.fromList $  rmFields ty ) ]
       firstOnly =  mapMaybe (\a -> (\b -> (a,b)) <$>  a `M.lookup` M.fromList onlyWanted ) firstFields
