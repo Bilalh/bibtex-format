@@ -78,6 +78,7 @@ main = do
                   |> map (removeUnwantedFields flags)
                   |> map (processMonth)
                   |> map (processDOI)
+                  |> map (removeWebJuck)
                   |> map (addExtraFields extra_fields)
                   |> sortBy (comparing comp)
                   |> map entry
@@ -97,9 +98,9 @@ doPDFLinks t@Cons{fields=fs} = t{fields=map process fs}
   where
     process :: (String, String) -> (String, String)
     process (_, stripPrefix "file://" -> Just rest)
-        | Just decoded <- urlDecode rest
+        | decoded <- urlDecode rest
         , ".pdf" `isInfixOf` decoded =
-        ("pdf", T.unpack . (T.replace ",Sente," "") . T.pack $ decoded)
+        ("pdf", T.unpack . (\x -> (flip T.append) ".pdf" $ T.splitOn ".pdf" x !! 0  ) . T.pack $ decoded)
     process f = f
 
 
