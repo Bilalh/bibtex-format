@@ -134,12 +134,25 @@ doPubReplacements kind reps t@Cons{fields=fc} |
 
 doPubReplacements _ _ t = t
 
+-- To fix mendeley'x broken doi output
 processDOI :: T -> T
 processDOI t@Cons{fields=fs} = t{fields=map process fs}
 
  where
  process ("doi", val) = ("doi", T.unpack . (T.replace "\\_" "_") . T.pack $ val)
  process tu           = tu
+
+
+-- e.g. organization Citeseer
+removeWebJuck :: T -> T
+removeWebJuck t@Cons{fields=fs} = t{fields=mapMaybe process fs}
+
+ where
+ process ("organization","Citeseer") = Nothing
+ process ("publisher","Citeseer")    = Nothing
+ process (_,"")                      = Nothing  -- No value
+ process tu                          = Just tu
+
 
 processMonth :: T -> T
 processMonth t@Cons{fields=fs} = t{fields=map process fs}
