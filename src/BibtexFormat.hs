@@ -223,7 +223,7 @@ removeUnwantedFields Args{..} c@Cons{fields=fs,entryType=ty} =
       unwrap (k,v) = (k,  dropWS . replace "\r" "" . replace "\n" " " . dropWS $  v)
       dropWS =  unwords . words
 
-      firstFields = [ "author", "editor", "title", "booktitle", "pages", "month", "year" ]
+      firstFields = [ "author", "title", "year", "month", "booktitle", "journal", "pages"]
 
       rm = [
         ""
