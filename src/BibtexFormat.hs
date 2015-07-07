@@ -209,7 +209,7 @@ removeUnwantedFields Args{..} c@Cons{fields=fs,entryType=ty} =
       unwrap (k,v) = (k,  dropWS . replace "\r" "" . replace "\n" " " . dropWS $  v)
       dropWS =  unwords . words
 
-      firstFields = [ "author", "editor", "title", "booktitle", "pages", "year" ]
+      firstFields = [ "author", "editor", "title", "booktitle", "pages", "month", "year" ]
 
       rm = [
         ""
@@ -234,7 +234,6 @@ removeUnwantedFields Args{..} c@Cons{fields=fs,entryType=ty} =
        ,"ieee_dockey"
        ,"medium_consulted"
        ,"microsoftid"
-       ,"notes"
        ,"organization"
        ,"pii"
        ,"publicationstatus"
