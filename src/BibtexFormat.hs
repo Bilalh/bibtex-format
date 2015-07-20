@@ -1,5 +1,5 @@
 {-# LANGUAGE DeriveDataTypeable, LambdaCase, OverloadedStrings, RecordWildCards,
-             ScopedTypeVariables, ViewPatterns #-}
+             ScopedTypeVariables, ViewPatterns, NoImplicitPrelude #-}
 module Main where
 
 import Helpers
@@ -79,7 +79,9 @@ main = do
                   |> map (processMonth)
                   |> map (processDOI)
                   |> map (removeWebJuck)
+                  |> map (protectUpper)
                   |> map (addExtraFields extra_fields)
+                  |> map (sortFields)
                   |> sortBy (comparing comp)
                   |> map entry
                   |> nub
@@ -154,6 +156,18 @@ removeWebJuck t@Cons{fields=fs} = t{fields=mapMaybe process fs}
  process tu                          = Just tu
 
 
+protectUpper :: T -> T
+protectUpper t@Cons{fields=fs} = t{fields=map process fs}
+
+  where
+  process (x,str) | x `elem` ["booktitle", "title", "journal", "Series"] = (x, protect str )
+  process tu = tu
+
+  protect = unwords . map protecter . words
+  --TODO finish
+  protecter s = s
+
+
 processMonth :: T -> T
 processMonth t@Cons{fields=fs} = t{fields=map process fs}
 
@@ -202,7 +216,21 @@ processMonth t@Cons{fields=fs} = t{fields=map process fs}
  fix xs = error . show $ "Not a month: "  ++ xs
 
 addExtraFields :: [(String,String)] -> T -> T
-addExtraFields extra t  = t{fields=fields t ++ extra}
+addExtraFields extra t  = t{fields= M.toList added}
+  where added = (M.fromList extra) `M.union` (M.fromList $ fields t)
+
+sortFields :: T -> T
+sortFields c@Cons{fields=fs} =
+  let
+      firstOnly =  mapMaybe (\a -> (\b -> (a,b)) <$>  a `M.lookup` M.fromList fs ) firstFields
+      rest =  sortBy (comparing fst) [ f | f <- fs, fst f `S.notMember` S.fromList firstFields ]
+
+  in
+      c{fields=  firstOnly ++ rest  }
+
+  where
+      firstFields = [ "author", "title", "year", "month", "booktitle", "journal", "pages"]
+
 
 removeUnwantedFields :: Args -> T -> T
 removeUnwantedFields Args{..} c@Cons{fields=fs,entryType=ty} =
@@ -211,19 +239,13 @@ removeUnwantedFields Args{..} c@Cons{fields=fs,entryType=ty} =
       rmFields "misc" = toRemove ++ rm
       rmFields _      = toRemove ++ rm
 
-      onlyWanted =  [ f | f <- fs', snd f /= "", fst f `S.notMember` (  S.fromList $  rmFields ty ) ]
-      firstOnly =  mapMaybe (\a -> (\b -> (a,b)) <$>  a `M.lookup` M.fromList onlyWanted ) firstFields
-      rest =  sortBy (comparing fst) [ f | f <- onlyWanted, fst f `S.notMember` S.fromList firstFields ]
-
-
+      onlyWanted = [ f | f <- fs', snd f /= "", fst f `S.notMember` (  S.fromList $  rmFields ty ) ]
   in
-      c{fields=  firstOnly ++ rest  }
+      c{fields=onlyWanted }
 
   where
       unwrap (k,v) = (k,  dropWS . replace "\r" "" . replace "\n" " " . dropWS $  v)
       dropWS =  unwords . words
-
-      firstFields = [ "author", "title", "year", "month", "booktitle", "journal", "pages"]
 
       rm = [
         ""
