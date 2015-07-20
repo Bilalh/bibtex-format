@@ -1,27 +1,21 @@
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE NamedFieldPuns #-}
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE DeriveDataTypeable, NamedFieldPuns, RecordWildCards #-}
 
 module Main where
 
-import Control.Monad ( unless )
-
-import Data.Char(isAscii, isAlphaNum,toLower)
-import Data.Map(Map)
-import Data.Maybe(fromMaybe)
-import Data.List ( nub, intercalate)
-
+import Control.Monad                   (unless)
+import Data.Char                       (isAlphaNum, isAscii, toLower)
+import Data.List                       (intercalate, nub)
+import Data.Map                        (Map)
+import Data.Maybe                      (fromMaybe)
+import Helpers
+import Strings                         (replace)
 import System.Console.CmdArgs.Implicit
-
 import Text.BibTeX.Entry
-import Text.BibTeX.Format ( entry )
-import Text.BibTeX.Parse ( file, splitAuthorList,splitSepList )
-import Text.ParserCombinators.Parsec ( parse )
-import Strings ( replace )
+import Text.BibTeX.Format              (entry)
+import Text.BibTeX.Parse               (file, splitAuthorList, splitSepList)
+import Text.ParserCombinators.Parsec   (parse)
 
 import qualified Data.Map as M
-
-import Helpers
 
 
 data Args = Args{
