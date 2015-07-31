@@ -4,7 +4,6 @@ module Main where
 
 import Helpers
 import Prelude
-import Strings (replace)
 
 import Control.Applicative             ((<$>))
 import Control.Arrow                   ((&&&))
@@ -275,9 +274,8 @@ removeUnwantedFields Args{..} c@Cons{fields=fs,entryType=ty} =
       c{fields=onlyWanted }
 
   where
-      unwrap (k,v) = (k,  dropWS . replace "\r" "" . replace "\n" " " . dropWS $  v)
-      dropWS =  unwords . words
-
+      unwrap (k,v) = (k, T.unpack . T.unwords . T.words . T.strip
+                      .  T.replace "\r" "" .  T.replace "\n" " " . T.pack $  v)
       rm = [
         ""
        ,"accessdate"
