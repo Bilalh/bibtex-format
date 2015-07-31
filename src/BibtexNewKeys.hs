@@ -17,19 +17,17 @@ import Text.ParserCombinators.Parsec   (parse)
 import qualified Data.Map as M
 
 
-data Args = Args{
-                   repsPath :: Maybe FilePath
-                }  deriving (Show, Data, Typeable)
+data Args = Args{ repsPath :: Maybe FilePath
+                } deriving (Show, Data, Typeable)
 
 argsDef :: Args
 argsDef  = Args
-             {
-              repsPath = def &= help "Replacements filepath"
-
+             { repsPath = def &= help "Replacements filepath"
              }
          &= summary (unlines
             [ "bibtex-new-keys:"
             , "Create consistent bibtex keys"
+            , "e.g. bessiere:05:a_sat_based_version_space"
             ])
          &= helpArg [name "h"]
 
@@ -45,12 +43,8 @@ main = do
     case parse file "<stdin>" stdin of
         Left err -> die (show err)
         Right xs -> do
-            let
-                entries = xs
-                    |> map lowerCaseEntryType
+            let stdout = xs
                     |> map (newCiteKeys reps)
-
-                stdout = entries
                     |> map entry
                     |> nub
                     |> unlines
@@ -62,7 +56,8 @@ main = do
             putStrLn stdout
             unless (null $ duplicates xs) (die stderr)
 
-
+-- format authors:2 digit year:words
+-- e.g bessiere:05:a_sat_based_version_space
 newCiteKeys :: Map String String -> T -> T
 newCiteKeys _ t@Cons{..} |
      Just (_:_:y@(_:_))   <- lookup "year" fields
@@ -101,45 +96,3 @@ newCiteKeys _ t@Cons{..} |
         takep left (x:xs) = x : takep (left - length x - 1) xs
 
 newCiteKeys _ t = t
-
-
-newCiteKeys1 :: Map String String -> T -> T
-newCiteKeys1 reps t@Cons{..} |
-     Just (_:_:y@(_:_))   <- lookup "year" fields
-    ,Just (kind, pubName) <- getKind
-    ,Just a               <- getAuthors
-
-    ,Just b  <- lookup pubName fields >>= return . useReps
-        = t{identifier=map toLower . filter f $ intercalate "/" [kind,ts b,y,a]}
-
-    where
-        ts s | length s >20 = take 20 s
-        ts s = s
-
-        f c =  (isAlphaNum c || c `elem` ":/_" ) && isAscii c
-
-        getKind
-            | Just _ <- "journal"   `fieldOf` t  = Just ("j","journal")
-            | Just _ <- "booktitle" `fieldOf` t  = Just ("c","booktitle")
-            | otherwise                          = Nothing
-
-        useReps s | Just newName  <- s `M.lookup` reps  = newName
-        useReps s = s
-
-        getAuthors
-            | Just authors <- lookup "author" fields =
-                let ls = splitAuthorList authors  in
-                Just . addFstAuthor ls
-                    . map ( head . last .  splitSepList ' ') . as $ ls
-            | otherwise = Nothing
-
-            where
-                addFstAuthor a s =
-                        let fa  = (last . splitSepList ' ' . head  $  a)
-                        in fa ++  '_':s
-
-                as []     = []
-                as [_]    = []
-                as (_:xs) = xs
-
-newCiteKeys1 _ t = t

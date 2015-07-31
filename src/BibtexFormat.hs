@@ -26,8 +26,7 @@ import qualified Data.Text as T
 
 
 data Args = Args
-    { keys     :: Bool
-    , toRemove :: [String]
+    { toRemove :: [String]
     , repsPath :: Maybe FilePath
     , pdfLinks :: Bool
     , extra_keys :: [String]
@@ -36,19 +35,19 @@ data Args = Args
 
 argsDef :: Args
 argsDef  = Args
-           { toRemove = [] &= typ "bibfield" &= help "Fields to remove using multiple -t"
-           , repsPath = def &= help "Replacements filepath"
-           , keys     = def &= help "Process bibtex citekeys" &= name "n" &= explicit
-           , pdfLinks = def &= help "Convert a file:// link to a posix path and places it in a pdf field"
-           , extra_keys = def &= name "k" &= help "Extra *keys* value pairs"  &= explicit
-           , extra_vals = def &= name "v" &= help "Extra keys *value* pairs"  &= explicit
+           { toRemove   = []  &= typ "bibfield" &= help "Fields to remove using, multiple -t allowed"
+           , repsPath   = def &= help "booktitle and journal replacements in a json file e.g. {\"Commun. ACM\": \"Communications of the ACM\"}  "
+           , pdfLinks   = def &= help "Convert a file:// link to a posix path and places it in the pdf field"
+           , extra_keys = def &= name "k" &= help "Extra *keys* value pairs for each entry"  &= explicit
+           , extra_vals = def &= name "v" &= help "Extra keys *value* pairs for each entry"  &= explicit
            }
          &= summary (unlines
             [ "bibtex-format:"
             , "* Sorts a bibtex file"
             , "* inlines crossrefs"
-            , "* Applies replacements to journal/conf name"
+            , "* Applies replacements to journal/booktitle"
             , "* Removes specifed fields"
+            , "* Fixes Mendeley Output"
             ])
          &= helpArg [name "h"]
 
@@ -62,27 +61,33 @@ main = do
   let extra_fields = zip (extra_keys flags) (extra_vals flags)
 
   stdin <- getContents
-  case parse file "<stdin>" (fixStdin stdin) of
+  case parse file "<stdin>" (stdin) of
       Left err -> die (show err)
       Right xs -> do
           let
               entries = xs
                   |> map lowerCaseFieldNames
                   |> map lowerCaseEntryType
+                  |> map fixEntryType
 
-              stdout = entries
                   |> map (inlineCrossRef $ M.fromList . map (identifier &&& id) $ entries)
                   |> map (doPubReplacements "booktitle" reps)
                   |> map (doPubReplacements "journal" reps)
                   |> (\z -> if pdfLinks flags then map doPDFLinks z else z)
+
                   |> map (removeUnwantedFields flags)
+                  |> map (removeWebJuck)
+
                   |> map (processMonth)
                   |> map (processDOI)
-                  |> map (removeWebJuck)
+                  |> map (processAuthor)
                   |> map (protectUpper)
+
                   |> map (addExtraFields extra_fields)
                   |> map (sortFields)
-                  |> sortBy (comparing comp)
+                  |> sortBy (comparing bibComp)
+
+              stdout = entries
                   |> map entry
                   |> nub
                   |> unlines
@@ -92,7 +97,23 @@ main = do
                   : map (\ (k,n) -> show n ++ "\t" ++ k ) (duplicates xs)
 
           putStrLn stdout
-          unless (null (duplicates xs) ) (die stderr)
+          unless (null $ duplicates xs) (die stderr)
+
+
+
+bibComp :: T -> (Maybe Int, String, Maybe String, String)
+bibComp x = (  fieldOf "year" x  >>= fmap negate . parseInt, entryType x, fieldOf "title" x, identifier x)
+
+
+lowerCaseEntryType :: T -> T
+lowerCaseEntryType t = t { entryType = map toLower (entryType t) }
+
+fixEntryType :: T -> T
+fixEntryType t@Cons{entryType=et} = t { entryType = f et }
+
+  where
+    f "inproc." = "inproceedings"
+    f x         = x
 
 
 doPDFLinks :: T -> T
@@ -104,24 +125,6 @@ doPDFLinks t@Cons{fields=fs} = t{fields=map process fs}
         , ".pdf" `isInfixOf` decoded =
         ("pdf", T.unpack . (\x -> (flip T.append) ".pdf" $ T.splitOn ".pdf" x !! 0  ) . T.pack $ decoded)
     process f = f
-
-
-processCiteKeys :: Args -> T -> T
-processCiteKeys Args{..} t@Cons{identifier=cid} | keys  =
-  t{identifier= replace "DBLP:" "" cid}
-
-processCiteKeys _ t = t
-
-
-inlineCrossRef :: Map String T -> T -> T
-inlineCrossRef ts t@Cons{fields=fc} |
-    Just refId <- "crossref" `fieldOf` t
-  , Just Cons{fields=ft} <- refId `M.lookup` ts =
-      let merged = M.union (M.fromList fc) (M.fromList ft)
-
-      in  t{ fields = M.toList . M.delete "crossref" $ merged}
-
-inlineCrossRef _ t = t
 
 
 doPubReplacements :: String -> Map String String -> T -> T
@@ -136,6 +139,18 @@ doPubReplacements kind reps t@Cons{fields=fc} |
 
 doPubReplacements _ _ t = t
 
+
+inlineCrossRef :: Map String T -> T -> T
+inlineCrossRef ts t@Cons{fields=fc} |
+    Just refId <- "crossref" `fieldOf` t
+  , Just Cons{fields=ft} <- refId `M.lookup` ts =
+      let merged = M.union (M.fromList fc) (M.fromList ft)
+
+      in  t{ fields = M.toList . M.delete "crossref" $ merged}
+
+inlineCrossRef _ t = t
+
+
 -- To fix mendeley'x broken doi output
 processDOI :: T -> T
 processDOI t@Cons{fields=fs} = t{fields=map process fs}
@@ -144,6 +159,17 @@ processDOI t@Cons{fields=fs} = t{fields=map process fs}
  process ("doi", val) = ("doi", T.unpack . (T.replace "\\_" "_") . T.pack $ val)
  process tu           = tu
 
+
+-- To fix mendeley'x broken Author output
+processAuthor :: T -> T
+processAuthor t@Cons{fields=fs} = t{fields=map process fs}
+
+ where
+ process ("author", val) = ("author", map f val)
+ process tu           = tu
+
+ f '’' =  '\''
+ f x  = x
 
 -- e.g. organization Citeseer
 removeWebJuck :: T -> T
@@ -166,6 +192,27 @@ protectUpper t@Cons{fields=fs} = t{fields=map process fs}
   protect = unwords . map protecter . words
   --TODO finish
   protecter s = s
+
+
+
+addExtraFields :: [(String,String)] -> T -> T
+addExtraFields extra t  = t{fields= M.toList added}
+  where added = (M.fromList extra) `M.union` (M.fromList $ fields t)
+
+
+sortFields :: T -> T
+sortFields c@Cons{fields=fs} =
+  let
+      firstOnly =  mapMaybe (\a -> (\b -> (a,b)) <$>  a `M.lookup` M.fromList fs ) firstFields
+      rest =  sortBy (comparing fst) [ f | f <- fs, fst f `S.notMember` S.fromList firstFields ]
+
+  in
+      c{fields=  firstOnly ++ rest  }
+
+  where
+      firstFields = [ "author", "title", "year", "month", "booktitle", "journal", "pages"]
+
+
 
 
 processMonth :: T -> T
@@ -214,22 +261,6 @@ processMonth t@Cons{fields=fs} = t{fields=map process fs}
  fix "december"  = "dec"
 
  fix xs = error . show $ "Not a month: "  ++ xs
-
-addExtraFields :: [(String,String)] -> T -> T
-addExtraFields extra t  = t{fields= M.toList added}
-  where added = (M.fromList extra) `M.union` (M.fromList $ fields t)
-
-sortFields :: T -> T
-sortFields c@Cons{fields=fs} =
-  let
-      firstOnly =  mapMaybe (\a -> (\b -> (a,b)) <$>  a `M.lookup` M.fromList fs ) firstFields
-      rest =  sortBy (comparing fst) [ f | f <- fs, fst f `S.notMember` S.fromList firstFields ]
-
-  in
-      c{fields=  firstOnly ++ rest  }
-
-  where
-      firstFields = [ "author", "title", "year", "month", "booktitle", "journal", "pages"]
 
 
 removeUnwantedFields :: Args -> T -> T
@@ -282,8 +313,3 @@ removeUnwantedFields Args{..} c@Cons{fields=fs,entryType=ty} =
        ,"uuid"
        ,"web_data_source"
        ]
-
-
-fixStdin :: String -> String
-fixStdin = replace "@inproc.{" "@inproceedings{"
-         . replace "@InProc.{" "@inproceedings{"

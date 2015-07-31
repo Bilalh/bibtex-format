@@ -5,7 +5,6 @@ import Control.Applicative ((<$>))
 import Control.Arrow       ((&&&))
 
 import Data.Aeson (FromJSON (..))
-import Data.Char  (toLower)
 import Data.List  (group, sort)
 
 import System.Directory (doesFileExist)
@@ -34,6 +33,11 @@ getJSON (Just fp) = do
 
 getJSON Nothing = return Nothing
 
+
+(|>) :: a -> (a -> b) -> b
+(|>) = flip ($)
+
+
 duplicates :: [T] -> [(String,Int)]
 duplicates xs = xs
     |>  map identifier
@@ -41,24 +45,12 @@ duplicates xs = xs
     |> filter (\ (_,n) -> n > 1 )
 
 
-lowerCaseEntryType :: T -> T
-lowerCaseEntryType t = t { entryType = map toLower (entryType t) }
-
-
-(|>) :: a -> (a -> b) -> b
-(|>) = flip ($)
-
-
-comp :: T -> (Maybe Int, String, Maybe String, String)
-comp x = (  fieldOf "year" x  >>= fmap negate . parseInt, entryType x, fieldOf "title" x, identifier x)
+histogram :: Ord a => [a] -> [(a,Int)]
+histogram = map (head &&& length) . group . sort
 
 
 fieldOf :: String -> T -> Maybe String
 fieldOf f = lookup f . fields
-
-
-histogram :: Ord a => [a] -> [(a,Int)]
-histogram = map (head &&& length) . group . sort
 
 
 die :: String -> IO ()
@@ -69,6 +61,15 @@ parseInt s  =  case reads s :: [(Int,String)] of
             [(d,"")] -> Just d
             _        -> Nothing
 
+
+urlDecode :: String -> String
+urlDecode = go []
+  where
+    go bs ('%':a:b:rest)           = go (fromIntegral (16 * Char.digitToInt a + Char.digitToInt b) : bs) rest
+    go bs (h:t) | fromEnum h < 256 = go (fromIntegral (fromEnum h) : bs) t -- Treat ASCII as just another byte of UTF-8
+    go [] []                       = []
+    go [] (h:t)                    = h : go [] t -- h >= 256, so can't be part of any UTF-8 byte sequence
+    go bs rest                     = decode (reverse bs) ++ go [] rest
 
 
 replacement_character :: Char
@@ -107,13 +108,3 @@ decode (c:cs)
                                $ shiftL acc 6 .|. fromEnum (r .&. 0x3f)
 
         aux _ rs     _ = replacement_character : decode rs
-
-
-urlDecode :: String -> String
-urlDecode = go []
-  where
-    go bs ('%':a:b:rest)           = go (fromIntegral (16 * Char.digitToInt a + Char.digitToInt b) : bs) rest
-    go bs (h:t) | fromEnum h < 256 = go (fromIntegral (fromEnum h) : bs) t -- Treat ASCII as just another byte of UTF-8
-    go [] []                       = []
-    go [] (h:t)                    = h : go [] t -- h >= 256, so can't be part of any UTF-8 byte sequence
-    go bs rest                     = decode (reverse bs) ++ go [] rest
