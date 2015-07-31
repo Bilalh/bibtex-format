@@ -3,12 +3,11 @@
 module Main where
 
 import Control.Monad                   (unless)
-import Data.Char                       (isAlphaNum, isAscii, toLower)
+import Data.Char                       (isAlphaNum, isAscii, toLower,isPunctuation)
 import Data.List                       (intercalate, nub)
 import Data.Map                        (Map)
 import Data.Maybe                      (fromMaybe)
 import Helpers
-import Strings                         (replace)
 import System.Console.CmdArgs.Implicit
 import Text.BibTeX.Entry
 import Text.BibTeX.Format              (entry)
@@ -69,24 +68,28 @@ newCiteKeys _ t@Cons{..} |
      Just (_:_:y@(_:_))   <- lookup "year" fields
     ,Just a               <- getAuthors
     ,Just ti              <- getTitle
-        = t{identifier= filter f $ a ++ ':' : (map toLower $ intercalate ":"  [y, ti ]) }
+        = t{identifier= filter filterChar . map repChar $ a ++ ':' : (map toLower $ intercalate ":"  [y, ti ]) }
 
     where
 
-        f c =  (isAlphaNum c || c `elem` ":/_" ) && isAscii c
+        repChar c | c `elem` "~"  = '_'
+        repChar c = c
+
+        mapChar c | c `elem` "-~"  = ' '
+        mapChar c = c
+
+        filterChar c =  (isAlphaNum c || c `elem` ":/_" ) && isAscii c
 
         getAuthors
             | Just authors <- fmap (map toLower) $ lookup "author" fields =
                 let ls = splitAuthorList authors  in
-                    Just (last . splitSepList ' ' . head  $ ls )
+                    Just (head . splitSepList ' ' . head  $ ls )
             | otherwise = Nothing
 
         getTitle
-            | Just parts <- fmap ( words . filter
-                                    (\c ->  c `elem` " _" || isAscii c && isAlphaNum c) .
-                                    replace "-" " "
-                                )
-                                $ lookup "title" fields=
+            | Just parts <- fmap (words . filter (not . isPunctuation)
+                                        . filter (isAscii) . map mapChar)
+                                 $ lookup "title" fields  =
                 Just . intercalate "_" $ takep 25 parts
 
             | otherwise = Nothing
