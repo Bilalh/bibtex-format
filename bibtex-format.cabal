@@ -1,10 +1,10 @@
 name: bibtex-format
 version: 0.3.0
-synopsis:
+synopsis: Reformat, fixes and transformers BibTeX files
 license: BSD3
 author: Bilal Syed Hussain
 maintainer: bilalshussain@gmail.com
-copyright: 2014 Bilal Syed Hussain
+copyright: 2014-2015 Bilal Syed Hussain
 build-type: Custom
 cabal-version: >=1.18
 
