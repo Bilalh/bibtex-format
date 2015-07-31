@@ -23,10 +23,6 @@ import qualified System.Exit          as E (exitFailure)
 import qualified System.IO            as E (hPutStrLn, stderr)
 
 
-
-getJSON2 :: FromJSON a => FilePath -> IO a
-getJSON2 = error "d"
-
 getJSON :: FromJSON a => Maybe FilePath -> IO (Maybe a)
 getJSON (Just fp) = do
   doesFileExist fp >>= \case
