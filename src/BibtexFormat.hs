@@ -25,11 +25,12 @@ import qualified Data.Text as T
 
 
 data Args = Args
-    { toRemove :: [String]
-    , repsPath :: Maybe FilePath
-    , pdfLinks :: Bool
-    , extra_keys :: [String]
-    , extra_vals :: [String]
+    { toRemove    :: [String]
+    , repsPath    :: Maybe FilePath
+    , pdfLinks    :: Bool
+    , extra_keys  :: [String]
+    , extra_vals  :: [String]
+    , zoteroFixes :: Bool
     }  deriving (Show, Data, Typeable)
 
 argsDef :: Args
@@ -39,6 +40,7 @@ argsDef  = Args
            , pdfLinks   = def &= help "Convert a file:// link to a posix path and places it in the pdf field"
            , extra_keys = def &= name "k" &= help "Extra *keys* value pairs for each entry"  &= explicit
            , extra_vals = def &= name "v" &= help "Extra keys *value* pairs for each entry"  &= explicit
+           , zoteroFixes = def &= name "z" &= help "Fixes for zotero"
            }
          &= summary (unlines
             [ "bibtex-format:"
@@ -81,6 +83,8 @@ main = do
                   |> map (processDOI)
                   |> map (processAuthor)
                   |> map (protectUpper)
+                  |> (\z -> if zoteroFixes flags then map zoteroFix z else z)
+
 
                   |> map (addExtraFields extra_fields)
                   |> map (sortFields)
@@ -185,14 +189,35 @@ protectUpper :: T -> T
 protectUpper t@Cons{fields=fs} = t{fields=map process fs}
 
   where
-  process (x,str) | x `elem` ["booktitle", "title", "journal", "Series"] = (x, protect str )
+  process (x,str) | x `elem` ["booktitle", "title", "journal", "series"] = (x, protect str )
   process tu = tu
 
   protect = unwords . map protecter . words
   --TODO finish
   protecter s = s
 
+zoteroFix :: T -> T
+zoteroFix t@Cons{fields=fs} = t{fields=map process fs}
 
+  where
+  toFix = ["title", "booktitle", "series", "journal"]
+  process (x,str) | x `elem` toFix = (x, unbrace str )
+  process tu = tu
+
+  unbrace :: String -> String
+  unbrace = T.unpack .  over " " p2 . T.pack
+
+  over :: T.Text -> (T.Text -> T.Text) -> T.Text -> T.Text
+  over v f = T.intercalate v . map f . T.splitOn v
+
+  p2 :: T.Text -> T.Text
+  p2 te | T.take 1  te == "{" = over "-" p3 te
+  p2 te = te
+
+  p3 te | T.take 1  te == "{" = T.dropWhile (== '{')
+                              . T.dropWhileEnd (== '}')
+                              $ te
+  p3 te = te
 
 addExtraFields :: [(String,String)] -> T -> T
 addExtraFields extra t  = t{fields= M.toList added}
