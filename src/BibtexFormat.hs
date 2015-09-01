@@ -294,7 +294,6 @@ removeUnwantedFields Args{..} c@Cons{fields=fs,entryType=ty} =
        ,"date-added"
        ,"date-modified"
        ,"descriptor"
-       ,"file"
        ,"google_scholar_bibtex_export_key"
        ,"ieee_dockey"
        ,"medium_consulted"
