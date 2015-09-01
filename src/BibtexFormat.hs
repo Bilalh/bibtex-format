@@ -189,12 +189,30 @@ protectUpper :: T -> T
 protectUpper t@Cons{fields=fs} = t{fields=map process fs}
 
   where
-  process (x,str) | x `elem` ["booktitle", "title", "journal", "series"] = (x, protect str )
+
+  toFix = ["title", "booktitle", "series", "journal"]
+  process (x,str) | x `elem` toFix = (x, brace str )
   process tu = tu
 
-  protect = unwords . map protecter . words
-  --TODO finish
-  protecter s = s
+  brace :: String -> String
+  brace = T.unpack .  over " " p2 . T.pack
+
+  over :: T.Text -> (T.Text -> T.Text) -> T.Text -> T.Text
+  over v f = T.intercalate v . map f . T.splitOn v
+
+  p2 :: T.Text -> T.Text
+  p2 te | T.take 1  te == "{" = te
+  p2 te = over "-" p3 te
+
+  p3 te |  T.take 1  te == "{"  = te
+  p3 te =
+    case T.commonPrefixes (T.toUpper te) te of
+      Nothing        -> te
+      Just (pre,_,_) -> if (T.length pre >= 3 )
+                        then T.concat ["{", te, "}"]
+                        else te
+
+
 
 zoteroFix :: T -> T
 zoteroFix t@Cons{fields=fs} = t{fields=springer $ map process fs}
@@ -216,13 +234,7 @@ zoteroFix t@Cons{fields=fs} = t{fields=springer $ map process fs}
   p2 te | T.take 1  te == "{" = over "-" p3 te
   p2 te = te
 
-  p3 te |  T.take 1  te == "{" =
-    case T.commonPrefixes (T.toUpper te) te of
-      Nothing        -> rm te
-      Just (pre,_,_) -> if (T.length pre >= 3 )
-                        then te
-                        else rm te
-
+  p3 te |  T.take 1  te == "{" = rm te
     where rm = T.dropWhile (== '{') . T.dropWhileEnd (== '}')
 
   p3 te = te
