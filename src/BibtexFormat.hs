@@ -76,6 +76,7 @@ main = do
                   |> map (doPubReplacements "journal" reps)
                   |> (\z -> if pdfLinks flags then map doPDFLinks z else z)
 
+                  |> (\z -> if zoteroFixes flags then map zoteroFix z else z)
                   |> map (removeUnwantedFields flags)
                   |> map (removeWebJuck)
 
@@ -83,7 +84,6 @@ main = do
                   |> map (processDOI)
                   |> map (processAuthor)
                   |> map (protectUpper)
-                  |> (\z -> if zoteroFixes flags then map zoteroFix z else z)
 
 
                   |> map (addExtraFields extra_fields)
@@ -197,9 +197,11 @@ protectUpper t@Cons{fields=fs} = t{fields=map process fs}
   protecter s = s
 
 zoteroFix :: T -> T
-zoteroFix t@Cons{fields=fs} = t{fields=map process fs}
+zoteroFix t@Cons{fields=fs} = t{fields=springer $ map process fs}
 
   where
+
+
   toFix = ["title", "booktitle", "series", "journal"]
   process (x,str) | x `elem` toFix = (x, unbrace str )
   process tu = tu
@@ -214,10 +216,22 @@ zoteroFix t@Cons{fields=fs} = t{fields=map process fs}
   p2 te | T.take 1  te == "{" = over "-" p3 te
   p2 te = te
 
-  p3 te | T.take 1  te == "{" = T.dropWhile (== '{')
-                              . T.dropWhileEnd (== '}')
-                              $ te
+  p3 te |  T.take 1  te == "{" =
+    case T.commonPrefixes (T.toUpper te) te of
+      Nothing        -> rm te
+      Just (pre,_,_) -> if (T.length pre >= 3 )
+                        then te
+                        else rm te
+
+    where rm = T.dropWhile (== '{') . T.dropWhileEnd (== '}')
+
   p3 te = te
+
+  springer fi | Just doi <- lookup "url" fi
+                        >>= stripPrefix "http://link.springer.com/chapter/" =
+   ("doi", doi) : [ (f,v) | (f,v) <- fi, f /= "url"]
+
+  springer fi = fi
 
 addExtraFields :: [(String,String)] -> T -> T
 addExtraFields extra t  = t{fields= M.toList added}
