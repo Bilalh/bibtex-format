@@ -224,6 +224,8 @@ zoteroFix t@Cons{fields=fs} = t{fields=springer $ map process fs}
 
   toFix = ["title", "booktitle", "series", "journal"]
   process (x,str) | x `elem` toFix = (x, unbrace str )
+  process (x@"isbn",str) = (x, T.unpack . head . T.splitOn " " . T.pack $ str )
+
   process tu = tu
 
   unbrace :: String -> String
