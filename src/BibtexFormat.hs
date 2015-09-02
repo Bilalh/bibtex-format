@@ -25,30 +25,33 @@ import qualified Data.Text as T
 
 
 data Args = Args
-    { toRemove    :: [String]
-    , repsPath    :: Maybe FilePath
-    , pdfLinks    :: Bool
-    , extra_keys  :: [String]
-    , extra_vals  :: [String]
-    , zoteroFixes :: Bool
+    { toRemove     :: [String]
+    , repsPath     :: Maybe FilePath
+    , pdfLinks     :: Bool
+    , extra_keys   :: [String]
+    , extra_vals   :: [String]
+    , zoteroFixes  :: Bool
+    , upperProtect :: Bool
     }  deriving (Show, Data, Typeable)
 
 argsDef :: Args
 argsDef  = Args
-           { toRemove   = []  &= typ "bibfield" &= help "Fields to remove using, multiple -t allowed"
-           , repsPath   = def &= help "booktitle and journal replacements in a json file e.g. {\"Commun. ACM\": \"Communications of the ACM\"}  "
-           , pdfLinks   = def &= help "Convert a file:// link to a posix path and places it in the pdf field"
-           , extra_keys = def &= name "k" &= help "Extra *keys* value pairs for each entry"  &= explicit
-           , extra_vals = def &= name "v" &= help "Extra keys *value* pairs for each entry"  &= explicit
-           , zoteroFixes = def &= name "z" &= help "Fixes for zotero"
+           { toRemove     = []    &= typ "bibfield" &= help "Fields to remove using, multiple -t allowed"
+           , repsPath     = def   &= help "booktitle and journal replacements in a json file e.g. {\"Commun. ACM\": \"Communications of the ACM\"}  "
+           , pdfLinks     = def   &= help "Convert a file:// link to a posix path and places it in the pdf field"
+           , extra_keys   = def   &= name "k" &= help "Extra *keys* value pairs for each entry"  &= explicit
+           , extra_vals   = def   &= name "v" &= help "Extra keys *value* pairs for each entry"  &= explicit
+           , zoteroFixes  = def   &= name "z" &= help "Fixes for zotero"
+           , upperProtect = def   &= name "p" &= help "Protect upper case words e.g CSP -> {CSP} "
            }
          &= summary (unlines
-            [ "bibtex-format:"
+            [ "bibtex-format can:"
             , "* Sorts a bibtex file"
             , "* inlines crossrefs"
             , "* Applies replacements to journal/booktitle"
             , "* Removes specifed fields"
             , "* Fixes Mendeley Output"
+            , "* Protect upper case words e.g CSP -> {CSP}"
             ])
          &= helpArg [name "h"]
 
@@ -83,8 +86,7 @@ main = do
                   |> map (processMonth)
                   |> map (processDOI)
                   |> map (processAuthor)
-                  |> map (protectUpper)
-
+                  |> (\z -> if upperProtect flags then map protectUpper z else z)
 
                   |> map (addExtraFields extra_fields)
                   |> map (sortFields)
