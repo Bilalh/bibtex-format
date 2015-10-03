@@ -22,6 +22,10 @@ executable bibtex-format
        ,bytestring
        ,directory
        ,text
+
+    default-extensions:
+        FlexibleContexts
+
     ghc-options:
         -Wall
 
@@ -39,5 +43,9 @@ executable bibtex-new-keys
        ,aeson
        ,bytestring
        ,directory
+
+    default-extensions:
+        FlexibleContexts
+
     ghc-options:
         -Wall
