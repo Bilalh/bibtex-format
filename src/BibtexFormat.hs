@@ -5,11 +5,10 @@ module Main where
 import Helpers
 import Prelude
 
-import Control.Applicative             ((<$>))
 import Control.Arrow                   ((&&&))
 import Control.Monad                   (unless)
 import Data.Char                       (toLower)
-import Data.List                       (isInfixOf, nub, sortBy, stripPrefix)
+import Data.List                       (isInfixOf, sortBy, stripPrefix,partition)
 import Data.Map                        (Map)
 import Data.Maybe                      (fromMaybe, mapMaybe)
 import Data.Ord                        (comparing)
@@ -32,6 +31,7 @@ data Args = Args
     , extra_vals   :: [String]
     , zoteroFixes  :: Bool
     , upperProtect :: Bool
+    , ignoreKinds  :: [String]
     }  deriving (Show, Data, Typeable)
 
 argsDef :: Args
@@ -43,6 +43,8 @@ argsDef  = Args
            , extra_vals   = def   &= name "v" &= help "Extra keys *value* pairs for each entry"  &= explicit
            , zoteroFixes  = def   &= name "z" &= help "Fixes for zotero"
            , upperProtect = def   &= name "p" &= help "Protect upper case words e.g CSP -> {CSP} "
+           , ignoreKinds  = def   &= name "i" &= help "Ignore kinds e.g book when processing "  &= explicit
+
            }
          &= summary (unlines
             [ "bibtex-format can:"
@@ -69,7 +71,8 @@ main = do
       Left err -> die (show err)
       Right xs -> do
           let
-              entries = xs
+              (toIgnore,toProcess) = partition ( (`elem` ignoreKinds flags ) . entryType) xs
+              entries = toProcess
                   |> map lowerCaseFieldNames
                   |> map lowerCaseEntryType
                   |> map fixEntryType
@@ -90,11 +93,10 @@ main = do
 
                   |> map (addExtraFields extra_fields)
                   |> map (sortFields)
-                  |> sortBy (comparing bibComp)
 
-              stdout = entries
+              stdout = (entries ++ toIgnore)
+                  |> sortBy (comparing bibComp)
                   |> map entry
-                  |> nub
                   |> unlines
 
               stderr = unlines
