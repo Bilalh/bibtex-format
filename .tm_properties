@@ -1,0 +1,2 @@
+include             = "{$include,.travis.yml}"
+exclude             = "{$exclude,dist}"
