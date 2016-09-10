@@ -1,10 +1,10 @@
 bibtex-format
-------------
+-------------
 
 [![Build Status](https://travis-ci.org/Bilalh/bibtex-format.svg?branch=master)](https://travis-ci.org/Bilalh/bibtex-format)
 
 Formats a BibTeX file or a BibTeX entry and inlines cross-references.
-Gets rid of juck fields that the websites add to the entries.
+Gets rid of junk fields that the websites add to the entries.
 
 Usage:
 
@@ -20,10 +20,28 @@ Use -t <field> to get rid of addition fields
 
 `align_equals.rb`  aligns the BibTeX nicely.
 
-What I use:
+
+###Examples
+
+What I commonly use as a bash function:
 
 ```
-bibtex-format -t publisher -t abstract  -t language -t document_type -t source -t coden -t art_number -t note | grep -v 'Lecture Notes in Computer Science' | align_equals.rb
+function bib_w(){
+	pbpaste \
+	| bibtex-format -t language -t document_type -t art_number        \
+		-t source -t coden -t art_number -t note -t acmid -t address  \
+		-t school -t language -t document_type -t source -t coden     \
+		-t langid -t shortjournal -t urldate -t note -t archiveprefix \
+		-t eprint -t mendeley-tags "$@"                               \
+	| bibtex-format -t publisher -i book -i inbook                    \
+	| align_equals.rb
+}
+```
+
+To process all .bib files in a directory using GNU parallel.
+
+```
+parallel --tag 'cat {} | bibtex-format | align_equals.rb  > {}.temp && mv {}.temp {} ' :::: <(find . -name '*.bib')
 ```
 
 
