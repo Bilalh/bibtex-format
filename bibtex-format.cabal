@@ -7,6 +7,7 @@ maintainer: bilalshussain@gmail.com
 copyright: 2014-2016 Bilal Syed Hussain
 build-type: Custom
 cabal-version: >=1.18
+Tested-With: GHC == 7.10.3
 
 executable bibtex-format
     default-language: Haskell2010
