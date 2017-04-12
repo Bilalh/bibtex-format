@@ -21,7 +21,7 @@ Use -t <field> to get rid of addition fields
 `align_equals.rb`  aligns the BibTeX nicely.
 
 
-###Examples
+### Examples
 
 What I commonly use as a bash function:
 
